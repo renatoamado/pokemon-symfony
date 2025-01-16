@@ -22,7 +22,9 @@ RUN apt update && apt install -y \
     pdo \
     pdo_mysql \
     && pecl install apcu \
+    && pecl install xdebug \
     && docker-php-ext-enable apcu \
+    && docker-php-ext-enable xdebug \
     && docker-php-ext-configure zip \
     && docker-php-ext-install zip \
     && apt clean && rm -rf /var/lib/apt/lists/*
