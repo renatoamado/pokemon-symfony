@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Exceptions\PokemonExceptions;
 use App\Service\PokemonService;
 use Exception;
 use Pagerfanta\Adapter\ArrayAdapter;
@@ -19,12 +20,18 @@ final class PokemonController extends AbstractController
     }
 
     /**
-     * @throws InvalidArgumentException
+     * @throws InvalidArgumentException|PokemonExceptions
      */
     #[Route('/pokemon', name: 'pokemon_list', methods: ['GET'])]
     public function index(Request $request): Response
     {
-        $cards = $this->service->getAllCards();
+        try {
+            $cards = $this->service->getAllCards();
+        } catch (Exception $exception) {
+            return $this->render('pokemon/index.html.twig', [
+                'error' => $exception->getMessage(),
+            ]);
+        }
 
         $adapter = new ArrayAdapter($cards);
         $pagerfanta = new Pagerfanta($adapter);
@@ -34,6 +41,7 @@ final class PokemonController extends AbstractController
         return $this->render('pokemon/index.html.twig', [
             'cards' => $pagerfanta->getCurrentPageResults(),
             'pager' => $pagerfanta,
+            'error' => null,
         ]);
     }
 
@@ -47,7 +55,7 @@ final class PokemonController extends AbstractController
                 'error' => $exception->getMessage(),
             ]);
         }
-        
+
         return $this->render('pokemon/show.html.twig', [
             'card' => $this->service->findById($id),
             'error' => null,

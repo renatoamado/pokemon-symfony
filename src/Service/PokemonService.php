@@ -38,6 +38,7 @@ final class PokemonService implements PokemonServiceInterface
      * @return array<int, CardDTO>
      *
      * @throws InvalidArgumentException
+     * @throws PokemonExceptions
      */
     public function getAllCards(): array
     {
@@ -55,6 +56,11 @@ final class PokemonService implements PokemonServiceInterface
         } else {
             /** @var array<int, Card> $cards */
             $cards = $this->service::Card()->all();
+            
+            if (!$cards) {
+                throw PokemonExceptions::noPokemonsNearby();
+            }
+
             $collection = $this->transformer->transformCollection($cards);
 
             $cacheItem->set($collection);

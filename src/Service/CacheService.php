@@ -5,9 +5,9 @@ namespace App\Service;
 use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Component\Cache\Adapter\FilesystemAdapter;
 
-class CacheService implements CacheServiceInterface
+readonly class CacheService implements CacheServiceInterface
 {
-    private readonly CacheItemPoolInterface $cache;
+    private CacheItemPoolInterface $cache;
 
     function __construct()
     {
