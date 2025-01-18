@@ -18,4 +18,14 @@ class PokemonExceptions extends Exception
             code: 404
         );
     }
+
+    public static function noPokemonsNearby(): self
+    {
+        $message = 'No pokémons nearby this time.';
+
+        return new self(
+            message: $message,
+            code: 404
+        );
+    }
 }

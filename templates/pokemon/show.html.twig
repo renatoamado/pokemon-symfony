@@ -1,9 +1,24 @@
 {% extends 'base.html.twig' %}
 
-{% block title %} {{ card.name }} {% endblock %}
+{% block title %}
+    {% if error %}
+        NOT FOUND
+    {% else %}
+        {{ card.name }}
+    {% endif %}
+{% endblock %}
 
 {% block body %}
     <div class="container">
+        {% if error %}
+        <div class="not-found-container">
+            <div class="not-found-message">
+                <h1>Card Not Found</h1>
+                <p>{{ error }}</p>
+                <a href="{{ path('pokemon_list') }}">Go back to the list</a>
+            </div>
+        </div>
+        {% else %}
         <div class="card-details">
             <div class="card-details-img">
                 <img src="{{ card.images.0.large }}" alt="{{ card.name }}">
@@ -51,10 +66,7 @@
                     {% endif %}
                 </ul>
             </div>
+            {% endif %}
         </div>
-
-
     </div>
-
-
 {% endblock %}

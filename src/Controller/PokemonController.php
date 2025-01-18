@@ -2,7 +2,9 @@
 
 namespace App\Controller;
 
+use App\Exceptions\PokemonExceptions;
 use App\Service\PokemonService;
+use Exception;
 use Pagerfanta\Adapter\ArrayAdapter;
 use Pagerfanta\Pagerfanta;
 use Psr\Cache\InvalidArgumentException;
@@ -18,29 +20,45 @@ final class PokemonController extends AbstractController
     }
 
     /**
-     * @throws InvalidArgumentException
+     * @throws InvalidArgumentException|PokemonExceptions
      */
     #[Route('/pokemon', name: 'pokemon_list', methods: ['GET'])]
     public function index(Request $request): Response
     {
-        $cards = $this->service->getAllCards();
+        try {
+            $cards = $this->service->getAllCards();
+        } catch (Exception $exception) {
+            return $this->render('pokemon/index.html.twig', [
+                'error' => $exception->getMessage(),
+            ]);
+        }
 
         $adapter = new ArrayAdapter($cards);
         $pagerfanta = new Pagerfanta($adapter);
         $pagerfanta->setMaxPerPage(20);
-        $pagerfanta->setCurrentPage((int) $request->query->get('page', 1));
+        $pagerfanta->setCurrentPage((int)$request->query->get('page', 1));
 
         return $this->render('pokemon/index.html.twig', [
             'cards' => $pagerfanta->getCurrentPageResults(),
             'pager' => $pagerfanta,
+            'error' => null,
         ]);
     }
 
     #[Route('/pokemon/show/{id}', name: 'pokemon_profile', methods: ['GET'])]
     public function show(string $id): Response
     {
+        try {
+            $this->service->findById($id);
+        } catch (Exception $exception) {
+            return $this->render('pokemon/show.html.twig', [
+                'error' => $exception->getMessage(),
+            ]);
+        }
+
         return $this->render('pokemon/show.html.twig', [
             'card' => $this->service->findById($id),
+            'error' => null,
         ]);
     }
 }

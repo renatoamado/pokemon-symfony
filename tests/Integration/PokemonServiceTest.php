@@ -4,13 +4,15 @@ namespace Tests\Integration;
 
 use App\DataTransferObject\CardDTO;
 use App\Exceptions\PokemonExceptions;
+use App\Service\CacheService;
+use App\Service\CacheServiceInterface;
 use App\Service\PokemonService;
+use App\Transformer\CardDTOTransformer;
+use InvalidArgumentException;
 use Mockery;
 use PHPUnit\Framework\TestCase;
 use Pokemon\Pokemon;
 use Pokemon\Resources\Interfaces\QueriableResourceInterface;
-use Psr\Log\NullLogger;
-use Symfony\Component\Cache\Adapter\ArrayAdapter;
 
 class PokemonServiceTest extends TestCase
 {
@@ -20,14 +22,13 @@ class PokemonServiceTest extends TestCase
 
     private ?Pokemon $pokemon;
 
-    private ?ArrayAdapter $cache;
+    private ?CacheServiceInterface $cache;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $logger = new NullLogger();
-        $this->cache = new ArrayAdapter();
+        $this->cache = new CacheService();
 
         $this->resource = Mockery::mock(QueriableResourceInterface::class);
         $this->pokemon = Mockery::mock(Pokemon::class);
@@ -41,10 +42,9 @@ class PokemonServiceTest extends TestCase
             ]);
         $this->pokemon
             ->shouldReceive('ApiKey')
-            ->with('c084f231-732a-46a8-9435-9dcf7ee75a29');
+            ->with(null);
 
-        $this->pokemonService = new PokemonService($logger, $this->pokemon);
-        $this->pokemonService->setCacheService($this->cache);
+        $this->pokemonService = new PokemonService($this->pokemon, $this->cache, new CardDTOTransformer());
     }
 
     public function testIfCacheMissesShouldReturnArrayOfCardDTO(): void
@@ -85,10 +85,10 @@ class PokemonServiceTest extends TestCase
             name: $cardTwo->getName(),
         );
 
-        $cacheItem = $this->cache->getItem('all-cached-cards');
+        $cacheItem = $this->cache->getCache()->getItem('all-cached-cards');
         $cacheItem->set([$cachedDtoOne, $cachedDtoTwo]);
 
-        $this->cache->save($cacheItem);
+        $this->cache->getCache()->save($cacheItem);
         $this->pokemonService->setCacheKey($cacheItem->getKey());
 
         $response = $this->pokemonService->getAllCards();
@@ -105,10 +105,10 @@ class PokemonServiceTest extends TestCase
             name: $card->getName(),
         );
 
-        $cacheItem = $this->cache->getItem('card-123');
+        $cacheItem = $this->cache->getCache()->getItem('card-123');
         $cacheItem->set($cachedDTO);
 
-        $this->cache->save($cacheItem);
+        $this->cache->getCache()->save($cacheItem);
 
         $response = $this->pokemonService->findById('123');
         $this->assertEquals($cachedDTO, $response);
@@ -170,16 +170,31 @@ class PokemonServiceTest extends TestCase
         $this->resource
             ->shouldReceive('find')
             ->with('ab-2')
-            ->andReturn(null);
+            ->andThrow(InvalidArgumentException::class);
 
         $this->pokemonService->findById('ab-2');
+    }
+
+    public function testThrowExceptionIfNotFindAnyPokemon(): void
+    {
+        $this->expectException(PokemonExceptions::class);
+
+        $this->pokemon
+            ->shouldReceive('Card')
+            ->andReturn($this->resource);
+
+        $this->resource
+            ->shouldReceive('all')
+            ->andReturn(null);
+
+        $this->pokemonService->getAllCards();
     }
 
     protected function tearDown(): void
     {
         parent::tearDown();
 
-        $this->pokemonService->getCacheService()->clear();
+        $this->cache->getCache()->clear();
         $this->pokemonService = null;
         $this->resource = null;
         $this->pokemon = null;

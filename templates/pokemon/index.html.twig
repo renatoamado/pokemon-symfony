@@ -1,55 +1,72 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Pokédex{% endblock %}
+{% block title %}
+    {% if error %}
+        NOT FOUND
+    {% else %}
+        Pokédex
+    {% endif %}
+{% endblock %}
 
 {% block body %}
     <div class="container">
 
-        <h1>Welcome Pokémon Trainer</h1>
-        <hr style="margin-bottom: 20px;">
-
-        <div class="card-grid">
-            {% for card in cards %}
-                <div class="card">
-                    <a href="{{ path('pokemon_profile', { id: card.id}) }}" class="card-link" target="_blank" title="{{ card.name }}">
-                        <img src="{{ card.images.0.small }}" alt="{{ card.name }}">
-                        <div class="card-info">
-                            <h2 class="card-name">{{ card.name }}</h2>
-                            <p class="card-id"><strong>Id:</strong> <i>{{ card.id }}</i></p>
-                            <p class="card-type"><strong>Types:</strong></p>
-                            <ul>
-                                {% if card.types is null %}
-                                    <li>N/A</li>
-                                {% else %}
-                                    {% for type in card.types %}
-                                        <li>{{ type }}</li>
-                                    {% endfor %}
-                                {% endif %}
-                            </ul>
-                        </div>
-                    </a>
+        {% if error %}
+            <div class="not-found-container">
+                <div class="not-found-message">
+                    <h1>Cards Not Found</h1>
+                    <p>{{ error }}</p>
+                    <a href="{{ path('pokemon_list') }}">Go back to the list</a>
                 </div>
-            {% endfor %}
-        </div>
+            </div>
+        {% else %}
+            <h1>Welcome Pokémon Trainer</h1>
+            <hr style="margin-bottom: 20px;">
 
-        <div class="pagination">
-            {% if pager.hasPreviousPage %}
-                <a href="{{ path('pokemon_list', { 'page': pager.previousPage }) }}">&laquo; Anterior</a>
-            {% else %}
-                <span class="disabled">&laquo; Anterior</span>
-            {% endif %}
+            <div class="card-grid">
+                {% for card in cards %}
+                    <div class="card">
+                        <a href="{{ path('pokemon_profile', { id: card.id}) }}" class="card-link" target="_blank"
+                           title="{{ card.name }}">
+                            <img src="{{ card.images.0.small }}" alt="{{ card.name }}">
+                            <div class="card-info">
+                                <h2 class="card-name">{{ card.name }}</h2>
+                                <p class="card-id"><strong>Id:</strong> <i>{{ card.id }}</i></p>
+                                <p class="card-type"><strong>Types:</strong></p>
+                                <ul>
+                                    {% if card.types is null %}
+                                        <li>N/A</li>
+                                    {% else %}
+                                        {% for type in card.types %}
+                                            <li>{{ type }}</li>
+                                        {% endfor %}
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </a>
+                    </div>
+                {% endfor %}
+            </div>
 
-            {% for page in 1..pager.nbPages %}
-                <a href="{{ path('pokemon_list', { 'page': page }) }}"
-                   {% if page == pager.currentPage %}class="disabled"{% endif %}>{{ page }}</a>
-            {% endfor %}
+            <div class="pagination">
+                {% if pager.hasPreviousPage %}
+                    <a href="{{ path('pokemon_list', { 'page': pager.previousPage }) }}">&laquo; Anterior</a>
+                {% else %}
+                    <span class="disabled">&laquo; Anterior</span>
+                {% endif %}
 
-            {% if pager.hasNextPage %}
-                <a href="{{ path('pokemon_list', { 'page': pager.nextPage }) }}">Próximo &raquo;</a>
-            {% else %}
-                <span class="disabled">Próximo &raquo;</span>
-            {% endif %}
-        </div>
+                {% for page in 1..pager.nbPages %}
+                    <a href="{{ path('pokemon_list', { 'page': page }) }}"
+                       {% if page == pager.currentPage %}class="disabled"{% endif %}>{{ page }}</a>
+                {% endfor %}
+
+                {% if pager.hasNextPage %}
+                    <a href="{{ path('pokemon_list', { 'page': pager.nextPage }) }}">Próximo &raquo;</a>
+                {% else %}
+                    <span class="disabled">Próximo &raquo;</span>
+                {% endif %}
+            </div>
+        {% endif %}
     </div>
 
 
