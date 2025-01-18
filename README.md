@@ -23,22 +23,33 @@ This a Docker based project for Symfony framework with PHP 8.3
 4. Access the application container `docker exec -it php bash`
 
 
-5. Install composer dependencies `composer install`
+5. Copy the local and test local env files
+   - `cp .env.local.example .env.local`
+   - `cp .env.test.local.example .env.test.local`
+   - in these files are configurations like **DATABASE_URL** and **API_KEY**. The first one is something that maybe I did something unnecessary in some point
+   but now this variable is necessary :). And the api key is not required, but it will limit the amount of requests you can make to the Pokémon API. 
+   If you need one, just create an account at [Pokémon TGC](https://pokemontcg.io/) and when you confirm your email, the apikey will be available once you log in again :)
 
 
-6. Open `https://localhost:8080/pokemon` in your favorite web browser and wait a little bit (yes, the first fetch is slow)
+6. Install composer dependencies `composer install`
 
 
-7. There's a test suit configured in `composer.json` file you can use it inside the container as follows
+7. Open `https://localhost:8080/pokemon` in your favorite web browser and wait a little bit (yes, the first fetch is slow)
+
+
+8. There's a test suite configured in `composer.json` file you can use it inside the container as follows
     - `composer refacto` to run **rector process**. It will validate and refactor your code based on your current PHP version
     - `composer lint` to run **php-cs-fixer fix**. It will apply the phpcs to your code base and fix your code based on the config file in the project root folder
     - `composer test:lint` to run **php-cs-fixer fix --diff --verbose --dry-run**. It will run phpcs fixer, but it will only show the suggestions. It will not change the code
     - `composer test:types` to run **phpstan analyse --ansi --memory-limit=2G**. It will run phpstan on your code to check for wrong variable types
     - `composer test:unit` to run **phpunit --coverage-text**. It will run all your tests inside the tests folder and show the code coverage %
     - `composer test:refacto` to run **rector process --dry-run**. It will run rector, but it will just show the suggested changes
-    - `composer test` to run the complete test suit above
+    - `composer test` to run the complete test suite above
 
-
-8. A small observation: whenever you run the unit tests, the cache will be cleaned the application will have to make the call to the api again to list all cards, and it will take a while :( 
+ 
+## Observations
+   - When you run the phpcs tests, either `composer test:lint` or `composer test`, phpcs fixer might show some "errors" which are really nothing. 
+   If that happens, just run `composer lint` and it will fix all of them and you can run the complete test suite again 
+   - Whenever you run the unit tests, the cache will be cleaned the application will have to make the call to the api again to list all cards, and it will take a while :( 
 
 ## **Have Fun!**
