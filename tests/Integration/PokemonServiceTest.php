@@ -7,11 +7,6 @@ use App\Exceptions\PokemonExceptions;
 use App\Service\PokemonService;
 use Mockery;
 use PHPUnit\Framework\TestCase;
-use Pokemon\Models\Attack;
-use Pokemon\Models\Card;
-use Pokemon\Models\CardImages;
-use Pokemon\Models\Resistance;
-use Pokemon\Models\Weakness;
 use Pokemon\Pokemon;
 use Pokemon\Resources\Interfaces\QueriableResourceInterface;
 use Psr\Log\NullLogger;
@@ -54,8 +49,8 @@ class PokemonServiceTest extends TestCase
 
     public function testIfCacheMissesShouldReturnArrayOfCardDTO(): void
     {
-        $cardOne = $this->generateCard('ab-1', 'pokemon 1');
-        $cardTwo = $this->generateCard('ab-2', 'pokemon 2');
+        $cardOne = generateCard('ab-1', 'pokemon 1');
+        $cardTwo = generateCard('ab-2', 'pokemon 2');
 
         $this->pokemon
             ->shouldReceive('Card')
@@ -77,8 +72,8 @@ class PokemonServiceTest extends TestCase
 
     public function testIfCacheHitsShouldReturnArrayOfCardDTO(): void
     {
-        $cardOne = $this->generateCard('ab-1', 'pokemon 1');
-        $cardTwo = $this->generateCard('ab-2', 'pokemon 2');
+        $cardOne = generateCard('ab-1', 'pokemon 1');
+        $cardTwo = generateCard('ab-2', 'pokemon 2');
 
         $cachedDtoOne = new CardDTO(
             id: $cardOne->getId(),
@@ -94,14 +89,17 @@ class PokemonServiceTest extends TestCase
         $cacheItem->set([$cachedDtoOne, $cachedDtoTwo]);
 
         $this->cache->save($cacheItem);
+        $this->pokemonService->setCacheKey($cacheItem->getKey());
 
-        $response = $this->pokemonService->getAllCards('all-cached-cards');
+        $response = $this->pokemonService->getAllCards();
+
         $this->assertIsArray($response);
+        $this->assertEquals($this->pokemonService->getCacheKey(), $cacheItem->getKey());
     }
 
     public function testFindByIdCacheHitShouldReturnCardDTO(): void
     {
-        $card = $this->generateCard('123', 'pokemon 1');
+        $card = generateCard('123', 'pokemon 1');
         $cachedDTO = new CardDTO(
             id: $card->getId(),
             name: $card->getName(),
@@ -118,7 +116,7 @@ class PokemonServiceTest extends TestCase
 
     public function testFindByIdCacheMissShouldReturnCardDTO(): void
     {
-        $card = $this->generateCard('123', 'pokemon 1');
+        $card = generateCard('123', 'pokemon 1');
 
         $this->pokemon
             ->shouldReceive('Card')
@@ -143,7 +141,7 @@ class PokemonServiceTest extends TestCase
 
     public function testNullModelParsingShouldReturnNull(): void
     {
-        $card = $this->generateCard('ab-1', 'pokemon 1');
+        $card = generateCard('ab-1', 'pokemon 1');
         $card->setImages(null);
 
         $this->pokemon
@@ -175,39 +173,6 @@ class PokemonServiceTest extends TestCase
             ->andReturn(null);
 
         $this->pokemonService->findById('ab-2');
-    }
-
-    private function generateCard(string $id, string $name): Card
-    {
-        $images = new CardImages();
-        $images->setSmall('I\'m a small card');
-        $images->setLarge('I\'m a large card');
-
-        $weaknesses = new Weakness();
-        $weaknesses->setType('Fire');
-        $weaknesses->setValue('5');
-
-        $resistances = new Resistance();
-        $resistances->setType('Resistance');
-        $resistances->setValue(5);
-
-        $attacks = new Attack();
-        $attacks->setName('Jungle Hammer');
-        $attacks->setDamage('60');
-        $attacks->setCost(['Grass', 'Grass', 'Colorless', 'Colorless']);
-        $attacks->setConvertedEnergyCost('4');
-        $attacks->setText('Heal 30 damage from this Pokémon.');
-
-        $card = new Card();
-        $card->setId($id);
-        $card->setName($name);
-        $card->setTypes(['Grass']);
-        $card->setImages($images);
-        $card->setWeaknesses([$weaknesses]);
-        $card->setResistances([$resistances]);
-        $card->setAttacks([$attacks]);
-
-        return $card;
     }
 
     protected function tearDown(): void
