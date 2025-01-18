@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Service\PokemonService;
+use Exception;
 use Pagerfanta\Adapter\ArrayAdapter;
 use Pagerfanta\Pagerfanta;
 use Psr\Cache\InvalidArgumentException;
@@ -28,7 +29,7 @@ final class PokemonController extends AbstractController
         $adapter = new ArrayAdapter($cards);
         $pagerfanta = new Pagerfanta($adapter);
         $pagerfanta->setMaxPerPage(20);
-        $pagerfanta->setCurrentPage((int) $request->query->get('page', 1));
+        $pagerfanta->setCurrentPage((int)$request->query->get('page', 1));
 
         return $this->render('pokemon/index.html.twig', [
             'cards' => $pagerfanta->getCurrentPageResults(),
@@ -39,8 +40,17 @@ final class PokemonController extends AbstractController
     #[Route('/pokemon/show/{id}', name: 'pokemon_profile', methods: ['GET'])]
     public function show(string $id): Response
     {
+        try {
+            $this->service->findById($id);
+        } catch (Exception $exception) {
+            return $this->render('pokemon/show.html.twig', [
+                'error' => $exception->getMessage(),
+            ]);
+        }
+        
         return $this->render('pokemon/show.html.twig', [
             'card' => $this->service->findById($id),
+            'error' => null,
         ]);
     }
 }

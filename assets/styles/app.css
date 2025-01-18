@@ -156,3 +156,23 @@ h1 {
     color: white;
     border-radius: 5px;
 }
+
+/** NOT FOUND CONTAINER */
+.not-found-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 50vh;
+    background-color: #f8d7da;
+    color: #721c24;
+    font-family: Arial, sans-serif;
+}
+
+.not-found-message {
+    text-align: center;
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 70%;
+    width: 100%;
+}

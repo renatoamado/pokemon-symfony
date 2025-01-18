@@ -6,18 +6,10 @@ namespace App\Service;
 
 use App\DataTransferObject\BaseDTO;
 use App\Exceptions\PokemonExceptions;
-use Psr\Cache\CacheItemPoolInterface;
 use Psr\Cache\InvalidArgumentException;
 
 interface PokemonServiceInterface
 {
-    /**
-     * Return the cache service.
-     */
-    public function getCacheService(): CacheItemPoolInterface;
-
-    public function setCacheService(CacheItemPoolInterface $cacheService): void;
-
     /**
      * Get an array with all cards DTOs.
      *
