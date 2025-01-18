@@ -1,0 +1,91 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Hello Pokémon Trainer!{% endblock %}
+
+{% block body %}
+<style>
+    body {
+        margin: 20px;
+        font-family: Arial, sans-serif;
+        background: #1A202C;
+        color: white;
+    }
+
+    .image-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 20px;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .image-grid img {
+        width: 100%;
+        height: auto;
+        border-radius: 8px;
+    }
+
+    h1 {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .pagination {
+        display: flex;
+        justify-content: center;
+        margin-top: 20px;
+    }
+
+    .pagination a {
+        margin: 0 5px;
+        padding: 10px;
+        text-decoration: none;
+        background-color: #007bff;
+        color: white;
+        border-radius: 5px;
+    }
+
+    .pagination a:hover {
+        background-color: #0056b3;
+    }
+
+    .pagination .disabled {
+        background-color: #ddd;
+        cursor: not-allowed;
+        margin: 0 5px;
+        padding: 10px;
+        text-decoration: none;
+        color: white;
+        border-radius: 5px;
+    }
+</style>
+
+
+    <h1>Pokémon List</h1>
+    <div class="image-grid">
+        {% for card in cards %}
+            <div>
+                <img src="{{ card.images.0.small }}" alt="{{ card.name }}">
+            </div>
+        {% endfor %}
+    </div>
+
+    <div class="pagination">
+        {% if pager.hasPreviousPage %}
+            <a href="{{ path('pokemon_list', { 'page': pager.previousPage }) }}">&laquo; Anterior</a>
+        {% else %}
+            <span class="disabled">&laquo; Anterior</span>
+        {% endif %}
+
+        {% for page in 1..pager.nbPages %}
+            <a href="{{ path('pokemon_list', { 'page': page }) }}" {% if page == pager.currentPage %}class="disabled"{% endif %}>{{ page }}</a>
+        {% endfor %}
+
+        {% if pager.hasNextPage %}
+            <a href="{{ path('pokemon_list', { 'page': pager.nextPage }) }}">Próximo &raquo;</a>
+        {% else %}
+            <span class="disabled">Próximo &raquo;</span>
+        {% endif %}
+    </div>
+
+{% endblock %}
