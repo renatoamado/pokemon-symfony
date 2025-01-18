@@ -1,0 +1,158 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #1A202C !important;
+    color: white;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.container {
+    margin: 20px;
+}
+
+/** CARD LIST */
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.card {
+    background: linear-gradient(135deg, #ffffff, #f0f0f0, #e8e8e8);
+    color: #000;
+    border-radius: 8px;
+    overflow: hidden;
+    transform: perspective(1px) translateZ(0);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.card:hover {
+    transform: scale(1.1);
+}
+
+.card-link {
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+}
+
+.card-info {
+    color: black;
+    padding: 10px 15px;
+}
+
+.card-name {
+    font-size: 18px;
+    font-weight: bold;
+    margin: 10px 0;
+}
+
+.card-id {
+    font-size: 14px;
+    margin: 10px 0;
+}
+
+.card-type {
+    font-size: 14px;
+    margin: 5px 0;
+}
+
+.card-attacks {
+    font-size: 14px;
+    margin-top: 10px;
+}
+
+/** CARD DETAILS */
+.card-details {
+    display: flex;
+    gap: 20px;
+    background: linear-gradient(135deg, #1E2A38, #0D1117);
+    border-radius: 8px;
+    padding: 20px;
+    max-width: 70%;
+    margin: 20px auto;
+}
+
+.card-details-img {
+    display: block;
+    overflow: hidden;
+}
+
+.card-details-img img {
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+}
+
+.card-details-info {
+    flex: none;
+    color: #C9D1D9;
+    width: 50%;
+    margin-left: 15%;
+}
+
+.card-details-info h1 {
+    font-size: 2rem;
+    text-align: left;
+    margin-bottom: 20px;
+    text-decoration: underline;
+}
+
+.card-details-info h1 i {
+    text-transform: uppercase;
+    font-weight: 400;
+}
+
+.card-details-info p,
+.card-details-info ul {
+    font-size: 1.2rem;
+    line-height: 1.6;
+}
+
+.card-details-info ul {
+    padding-left: 20px;
+}
+
+.card-details-info ul li {
+    margin-bottom: 5px;
+}
+
+/** PAGINATION */
+.pagination {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.pagination a {
+    margin: 0 5px;
+    padding: 10px;
+    text-decoration: none;
+    background-color: #007bff;
+    color: white;
+    border-radius: 5px;
+}
+
+.pagination a:hover {
+    background-color: #0056b3;
+}
+
+.pagination .disabled {
+    background-color: #ddd;
+    cursor: not-allowed;
+    margin: 0 5px;
+    padding: 10px;
+    text-decoration: none;
+    color: white;
+    border-radius: 5px;
+}

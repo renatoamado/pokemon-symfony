@@ -21,6 +21,8 @@ final class PokemonService implements PokemonServiceInterface
 {
     private CacheItemPoolInterface $cache;
 
+    private string $cacheKey;
+
     public function __construct(private readonly LoggerInterface $logger, private readonly TgcService $service)
     {
         $this->service::Options([
@@ -32,6 +34,17 @@ final class PokemonService implements PokemonServiceInterface
         $this->service::ApiKey('c084f231-732a-46a8-9435-9dcf7ee75a29');
 
         $this->cache = new FilesystemAdapter();
+        $this->cacheKey = 'all-cards';
+    }
+
+    public function getCacheKey(): string
+    {
+        return $this->cacheKey;
+    }
+
+    public function setCacheKey(string $cacheKey): void
+    {
+        $this->cacheKey = $cacheKey;
     }
 
     public function getCacheService(): CacheItemPoolInterface
@@ -49,12 +62,12 @@ final class PokemonService implements PokemonServiceInterface
      *
      * @throws InvalidArgumentException|ReflectionException
      */
-    public function getAllCards(?string $cacheKey = null): array
+    public function getAllCards(): array
     {
         $this->logger->debug('Get all cards');
 
         $cacheItem = $this->cache
-            ->getItem($cacheKey ?? 'all-cards')
+            ->getItem($this->cacheKey)
             ->expiresAfter(60 * 60 * 24);
 
         if ($cacheItem->isHit()) {

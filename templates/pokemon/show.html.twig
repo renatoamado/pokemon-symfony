@@ -1,0 +1,60 @@
+{% extends 'base.html.twig' %}
+
+{% block title %} {{ card.name }} {% endblock %}
+
+{% block body %}
+    <div class="container">
+        <div class="card-details">
+            <div class="card-details-img">
+                <img src="{{ card.images.0.large }}" alt="{{ card.name }}">
+            </div>
+            <div class="card-details-info">
+                <h1>{{ card.name }} ( <i>{{ card.id }}</i> )</h1>
+                <p class="card-type"><strong>Types:</strong></p>
+                <ul>
+                    {% if card.types is null %}
+                        <li>N/A</li>
+                    {% else %}
+                        {% for type in card.types %}
+                            <li>{{ type }}</li>
+                        {% endfor %}
+                    {% endif %}
+                </ul>
+                <p class="card-props"><strong>Resistances:</strong></p>
+                <ul>
+                    {% if card.resistances is null %}
+                        <li>N/A</li>
+                    {% else %}
+                        {% for resistance in card.resistances %}
+                            <li>{{ resistance.type }} {{ resistance.value }}</li>
+                        {% endfor %}
+                    {% endif %}
+                </ul>
+                <p class="card-props"><strong>Weaknesses:</strong></p>
+                <ul>
+                    {% if card.weaknesses is null %}
+                        <li>N/A</li>
+                    {% else %}
+                        {% for weaknes in card.weaknesses %}
+                            <li>{{ weaknes.type }} {{ weaknes.value }}</li>
+                        {% endfor %}
+                    {% endif %}
+                </ul>
+                <p class="card-props"><strong>Attacks:</strong></p>
+                <ul>
+                    {% if card.attacks is null %}
+                        <li>N/A</li>
+                    {% else %}
+                        {% for attack in card.attacks %}
+                            <li>{{ attack.name }} ( {{ attack.damage }}dmg )</li>
+                        {% endfor %}
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+
+
+    </div>
+
+
+{% endblock %}

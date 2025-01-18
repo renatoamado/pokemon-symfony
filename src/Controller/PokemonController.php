@@ -28,7 +28,7 @@ final class PokemonController extends AbstractController
         $adapter = new ArrayAdapter($cards);
         $pagerfanta = new Pagerfanta($adapter);
         $pagerfanta->setMaxPerPage(20);
-        $pagerfanta->setCurrentPage($request->query->get('page', 1));
+        $pagerfanta->setCurrentPage((int) $request->query->get('page', 1));
 
         return $this->render('pokemon/index.html.twig', [
             'cards' => $pagerfanta->getCurrentPageResults(),
@@ -39,9 +39,8 @@ final class PokemonController extends AbstractController
     #[Route('/pokemon/show/{id}', name: 'pokemon_profile', methods: ['GET'])]
     public function show(string $id): Response
     {
-        return $this->render('pokemon/index.html.twig', [
-            'controller_name' => 'PokemonController',
-            'cards' => $this->service->findById($id),
+        return $this->render('pokemon/show.html.twig', [
+            'card' => $this->service->findById($id),
         ]);
     }
 }
