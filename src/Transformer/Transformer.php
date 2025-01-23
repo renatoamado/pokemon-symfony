@@ -8,7 +8,7 @@ use Pokemon\Models\CardImages;
 use Pokemon\Models\Model;
 use ReflectionException;
 
-class CardDTOTransformer
+class Transformer implements TransformerInterface
 {
     /**
      * @throws ReflectionException

@@ -3,23 +3,19 @@
 namespace Tests\Feature\Controller;
 
 use App\DataTransferObject\CardDTO;
-use App\Service\CacheService;
 use App\Service\CacheServiceInterface;
+use App\Service\CardProviderInterface;
 use App\Service\PokemonService;
-use App\Service\PokemonServiceInterface;
-use App\Transformer\CardDTOTransformer;
+use InvalidArgumentException;
 use Mockery;
-use Pokemon\Pokemon;
-use Pokemon\Resources\Interfaces\QueriableResourceInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\Cache\Adapter\ArrayAdapter;
 
-final class PokemonControllerTest extends WebTestCase
+class PokemonControllerTest extends WebTestCase
 {
-    private ?PokemonService $pokemonService = null;
+    private ?CacheServiceInterface $cacheService;
 
-    private ?CacheServiceInterface $cache;
+    private ?CardProviderInterface $cardProvider;
 
     private ?KernelBrowser $client;
 
@@ -27,13 +23,22 @@ final class PokemonControllerTest extends WebTestCase
     {
         parent::setUp();
 
-        $this->client = PokemonControllerTest::createClient();
+        $this->client = self::createClient();
+        $this->cacheService = Mockery::mock(CacheServiceInterface::class);
+        $this->cardProvider = Mockery::mock(CardProviderInterface::class);
 
-        $adapter = new ArrayAdapter();
+        self::getContainer()->set(CacheServiceInterface::class, $this->cacheService);
+        self::getContainer()->set(CardProviderInterface::class, $this->cardProvider);
+    }
 
-        $this->cache = new CacheService($adapter);
+    protected function tearDown(): void
+    {
+        parent::tearDown();
 
-        PokemonControllerTest::getContainer()->set(CacheServiceInterface::class, $this->cache);
+        $this->cacheService = null;
+        $this->cardProvider = null;
+
+        Mockery::close();
     }
 
     public function testIndex(): void
@@ -53,13 +58,20 @@ final class PokemonControllerTest extends WebTestCase
             images: [$cardTwo->getImages()->toArray()],
         );
 
-        $cacheItem = $this->cache->getCache()->getItem('all-cached-cards');
-        $cacheItem->set([$cachedDtoOne, $cachedDtoTwo]);
+        $cacheKey = 'all-cached-cards';
 
-        $this->cache->getCache()->save($cacheItem);
+        $this->cacheService
+            ->shouldReceive('getCacheKey')
+            ->with(PokemonService::ALL_CARDS_CACHE_KEY)
+            ->andReturn($cacheKey);
+        $this->cacheService
+            ->shouldReceive('getCacheItem')
+            ->with($cacheKey)
+            ->andReturn([$cachedDtoOne, $cachedDtoTwo]);
 
-        $this->pokemonService = $this->getContainer()->get(PokemonServiceInterface::class);
-        $this->pokemonService->setCacheKey($cacheItem->getKey());
+        $this->cardProvider
+            ->shouldReceive('findAll')
+            ->andReturn([$cardOne, $cardTwo]);
 
         $this->client->request('GET', '/pokemon');
 
@@ -70,22 +82,31 @@ final class PokemonControllerTest extends WebTestCase
 
     public function testShow(): void
     {
-        $cardOne = generateCard('ab-1', 'pokemon 1');
+        $card = generateCard('123', 'pokemon 1');
         $cachedDTO = new CardDTO(
-            id: $cardOne->getId(),
-            name: $cardOne->getName(),
-            images: [$cardOne->getImages()->toArray()],
+            id: $card->getId(),
+            name: $card->getName(),
+            images: [$card->getImages()->toArray()],
         );
 
-        $cacheItem = $this->cache->getCache()->getItem('card-ab-1');
-        $cacheItem->set($cachedDTO);
+        $cardID = '123';
+        $cacheKey = "card-$cardID";
 
-        $this->cache->getCache()->save($cacheItem);
+        $this->cacheService
+            ->shouldReceive('getCacheKey')
+            ->with(PokemonService::CARD_CACHE_KEY_PREFIX, $cardID)
+            ->andReturn($cacheKey);
+        $this->cacheService
+            ->shouldReceive('getCacheItem')
+            ->with($cacheKey)
+            ->andReturn($cachedDTO);
 
-        $this->pokemonService = $this->getContainer()->get(PokemonServiceInterface::class);
-        $this->pokemonService->setCacheKey($cacheItem->getKey());
+        $this->cardProvider
+            ->shouldReceive('findById')
+            ->with($cardID)
+            ->andReturn($card);
 
-        $this->client->request('GET', '/pokemon/show/ab-1');
+        $this->client->request('GET', '/pokemon/show/123');
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h1', 'pokemon 1');
@@ -94,72 +115,52 @@ final class PokemonControllerTest extends WebTestCase
 
     public function testShowNoCardFoundPage(): void
     {
-        $cardOne = generateCard('ab-1', 'pokemon 1');
-        $cachedDTO = new CardDTO(
-            id: $cardOne->getId(),
-            name: $cardOne->getName(),
-            images: [$cardOne->getImages()->toArray()],
-        );
+        $cardID = '123';
+        $cacheKey = "card-$cardID";
 
-        $cacheItem = $this->cache->getCache()->getItem('card-not-found');
-        $cacheItem->set($cachedDTO);
+        $this->cacheService
+            ->shouldReceive('getCacheKey')
+            ->with(PokemonService::CARD_CACHE_KEY_PREFIX, $cardID)
+            ->andReturn($cacheKey);
+        $this->cacheService
+            ->shouldReceive('getCacheItem')
+            ->with($cacheKey)
+            ->andReturn(null);
 
-        $this->cache->getCache()->save($cacheItem);
+        $this->cardProvider
+            ->shouldReceive('findById')
+            ->with($cardID)
+            ->andThrow(InvalidArgumentException::class);
 
-        $this->pokemonService = $this->getContainer()->get(PokemonServiceInterface::class);
-        $this->pokemonService->setCacheKey($cacheItem->getKey());
-
-        $this->client->request('GET', '/pokemon/show/ab-1');
+        $this->client->request('GET', '/pokemon/show/123');
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h1', 'Card Not Found');
-        self::assertSelectorTextContains('p', $cachedDTO->getId());
+        self::assertSelectorTextContains('p', $cardID);
         self::assertSelectorExists('.not-found-message');
     }
 
     public function testShowAnyCardFoundPage(): void
     {
-        $resource = Mockery::mock(QueriableResourceInterface::class);
-        $pokemon = Mockery::mock(Pokemon::class);
+        $cacheKey = 'all-cached-cards';
 
-        $pokemon
-            ->shouldReceive('Options')
-            ->with([
-                'verify' => true,
-                'timeout' => 20,
-                'connection_timeout' => 5,
-            ]);
-        $pokemon
-            ->shouldReceive('ApiKey')
-            ->with(null);
-
-        $pokemon
-            ->shouldReceive('Card')
-            ->andReturn($resource);
-
-        $resource
-            ->shouldReceive('all')
+        $this->cacheService
+            ->shouldReceive('getCacheKey')
+            ->with(PokemonService::ALL_CARDS_CACHE_KEY)
+            ->andReturn($cacheKey);
+        $this->cacheService
+            ->shouldReceive('getCacheItem')
+            ->with($cacheKey)
             ->andReturn(null);
 
-        $service = new PokemonService($pokemon, $this->cache, new CardDTOTransformer());
-
-        static::getContainer()->set(PokemonService::class, $service);
+        $this->cardProvider
+            ->shouldReceive('findAll')
+            ->andReturn(null);
 
         $this->client->request('GET', '/pokemon');
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h1', 'Cards Not Found');
         self::assertSelectorExists('.not-found-message');
-    }
-
-    protected function tearDown(): void
-    {
-        parent::tearDown();
-
-        $this->cache->getCache()->clear();
-        $this->pokemonService = null;
-        $this->cache = null;
-
-        Mockery::close();
     }
 }
