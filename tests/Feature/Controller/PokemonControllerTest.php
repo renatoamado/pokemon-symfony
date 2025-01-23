@@ -3,6 +3,7 @@
 namespace Tests\Feature\Controller;
 
 use App\DataTransferObject\CardDTO;
+use App\Service\CacheService;
 use App\Service\CacheServiceInterface;
 use App\Service\PokemonService;
 use App\Service\PokemonServiceInterface;
@@ -12,6 +13,7 @@ use Pokemon\Pokemon;
 use Pokemon\Resources\Interfaces\QueriableResourceInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Cache\Adapter\ArrayAdapter;
 
 final class PokemonControllerTest extends WebTestCase
 {
@@ -27,7 +29,11 @@ final class PokemonControllerTest extends WebTestCase
 
         $this->client = PokemonControllerTest::createClient();
 
-        $this->cache = $this->getContainer()->get(CacheServiceInterface::class);
+        $adapter = new ArrayAdapter();
+
+        $this->cache = new CacheService($adapter);
+
+        PokemonControllerTest::getContainer()->set(CacheServiceInterface::class, $this->cache);
     }
 
     public function testIndex(): void

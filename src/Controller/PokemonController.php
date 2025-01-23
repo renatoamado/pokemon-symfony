@@ -26,7 +26,7 @@ final class PokemonController extends AbstractController
     public function index(Request $request): Response
     {
         try {
-            $cards = $this->service->getAllCards();
+            $cards = $this->service->findAll();
         } catch (Exception $exception) {
             return $this->render('pokemon/index.html.twig', [
                 'error' => $exception->getMessage(),

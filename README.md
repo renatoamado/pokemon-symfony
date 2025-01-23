@@ -50,6 +50,5 @@ This a Docker based project for Symfony framework with PHP 8.3
 ## Observations
    - When you run the phpcs tests, either `composer test:lint` or `composer test`, phpcs fixer might show some "errors" which are really nothing. 
    If that happens, just run `composer lint` and it will fix all of them and you can run the complete test suite again 
-   - Whenever you run the unit tests, the cache will be cleaned the application will have to make the call to the api again to list all cards, and it will take a while :( 
 
 ## **Have Fun!**

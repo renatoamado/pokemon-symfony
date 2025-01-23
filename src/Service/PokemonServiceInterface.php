@@ -16,16 +16,15 @@ interface PokemonServiceInterface
      * @return array<int, BaseDTO>
      *
      * @throws InvalidArgumentException
+     * @throws PokemonExceptions
      */
-    public function getAllCards(): array;
+    public function findAll(): array;
 
     /**
      * Search for a card by id.
      *
-     * @return BaseDTO|array<int, string>
-     *
      * @throws InvalidArgumentException
      * @throws PokemonExceptions
      */
-    public function findById(string $id): BaseDTO|array;
+    public function findById(string $id): BaseDTO;
 }

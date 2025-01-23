@@ -13,7 +13,7 @@ use Pokemon\Pokemon as TgcService;
 use Psr\Cache\InvalidArgumentException;
 use ReflectionException;
 
-final class PokemonService implements PokemonServiceInterface
+class PokemonService implements PokemonServiceInterface
 {
     private string $cacheKey = 'all-cards';
 
@@ -40,7 +40,7 @@ final class PokemonService implements PokemonServiceInterface
      * @throws InvalidArgumentException
      * @throws PokemonExceptions
      */
-    public function getAllCards(): array
+    public function findAll(): array
     {
         $cache = $this->cacheService->getCache();
 
@@ -58,7 +58,7 @@ final class PokemonService implements PokemonServiceInterface
             $cards = $this->service::Card()->all();
             
             if (!$cards) {
-                throw PokemonExceptions::noPokemonsNearby();
+                throw PokemonExceptions::noPokemonNearby();
             }
 
             $collection = $this->transformer->transformCollection($cards);

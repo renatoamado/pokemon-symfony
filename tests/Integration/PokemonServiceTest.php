@@ -13,6 +13,7 @@ use Mockery;
 use PHPUnit\Framework\TestCase;
 use Pokemon\Pokemon;
 use Pokemon\Resources\Interfaces\QueriableResourceInterface;
+use Symfony\Component\Cache\Adapter\ArrayAdapter;
 
 class PokemonServiceTest extends TestCase
 {
@@ -28,7 +29,8 @@ class PokemonServiceTest extends TestCase
     {
         parent::setUp();
 
-        $this->cache = new CacheService();
+        $adapter = new ArrayAdapter();
+        $this->cache = new CacheService($adapter);
 
         $this->resource = Mockery::mock(QueriableResourceInterface::class);
         $this->pokemon = Mockery::mock(Pokemon::class);
@@ -60,7 +62,7 @@ class PokemonServiceTest extends TestCase
             ->shouldReceive('all')
             ->andReturn([$cardOne, $cardTwo]);
 
-        $cards = $this->pokemonService->getAllCards();
+        $cards = $this->pokemonService->findAll();
 
         $this->assertIsArray($cards);
         $this->assertIsArray($cards[0]->toArray());
@@ -91,7 +93,7 @@ class PokemonServiceTest extends TestCase
         $this->cache->getCache()->save($cacheItem);
         $this->pokemonService->setCacheKey($cacheItem->getKey());
 
-        $response = $this->pokemonService->getAllCards();
+        $response = $this->pokemonService->findAll();
 
         $this->assertIsArray($response);
         $this->assertEquals($this->pokemonService->getCacheKey(), $cacheItem->getKey());
@@ -187,7 +189,7 @@ class PokemonServiceTest extends TestCase
             ->shouldReceive('all')
             ->andReturn(null);
 
-        $this->pokemonService->getAllCards();
+        $this->pokemonService->findAll();
     }
 
     protected function tearDown(): void

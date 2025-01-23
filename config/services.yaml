@@ -32,7 +32,13 @@ services:
               arguments:
                   - '%env(API_KEY)%'
 
-    App\Service\CacheService: ~
+    Symfony\Component\Cache\Adapter\FilesystemAdapter:
+        arguments:
+            $namespace: 'app_cache'
+
+    App\Service\CacheService:
+        arguments:
+            $cache: '@Symfony\Component\Cache\Adapter\FilesystemAdapter'
 
     App\Service\PokemonService:
         arguments:

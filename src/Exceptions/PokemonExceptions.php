@@ -9,7 +9,7 @@ class PokemonExceptions extends Exception
     public static function pokemonNotFound(string $pokemonId): self
     {
         $message = sprintf(
-            'Pokemon "%s" not found.',
+            'Pokémon "%s" not found.',
             $pokemonId
         );
 
@@ -19,9 +19,9 @@ class PokemonExceptions extends Exception
         );
     }
 
-    public static function noPokemonsNearby(): self
+    public static function noPokemonNearby(): self
     {
-        $message = 'No pokémons nearby this time.';
+        $message = 'No Pokémon nearby this time.';
 
         return new self(
             message: $message,
