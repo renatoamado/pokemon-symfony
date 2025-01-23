@@ -22,6 +22,9 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+    App\Service\CardProviderInterface:
+        class: App\Service\TgcCardProvider
+
     Pokemon\Pokemon:
         class: Pokemon\Pokemon
         calls:
@@ -40,7 +43,11 @@ services:
         arguments:
             $cache: '@Symfony\Component\Cache\Adapter\FilesystemAdapter'
 
+    App\Transformer\TransformerInterface:
+        class: App\Transformer\Transformer
+
     App\Service\PokemonService:
         arguments:
-            $service: '@Pokemon\Pokemon'
+            $cardProvider: '@App\Service\CardProviderInterface'
             $cacheService: '@App\Service\CacheService'
+            $transformer: '@App\Transformer\TransformerInterface'

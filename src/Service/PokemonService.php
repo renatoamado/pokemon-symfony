@@ -7,101 +7,76 @@ namespace App\Service;
 use App\DataTransferObject\BaseDTO;
 use App\DataTransferObject\CardDTO;
 use App\Exceptions\PokemonExceptions;
-use App\Transformer\CardDTOTransformer;
+use App\Transformer\TransformerInterface;
+use InvalidArgumentException;
 use Pokemon\Models\Card;
-use Pokemon\Pokemon as TgcService;
-use Psr\Cache\InvalidArgumentException;
-use ReflectionException;
 
 class PokemonService implements PokemonServiceInterface
 {
-    private string $cacheKey = 'all-cards';
+    public const ALL_CARDS_CACHE_KEY = 'all-cards';
+
+    public const CARD_CACHE_KEY_PREFIX = 'card';
 
     public function __construct(
-        private readonly TgcService $service,
+        private readonly CardProviderInterface $cardProvider,
         private readonly CacheServiceInterface $cacheService,
-        private readonly CardDTOTransformer $transformer,
+        private readonly TransformerInterface $transformer,
     ) {
     }
 
-    public function getCacheKey(): string
-    {
-        return $this->cacheKey;
-    }
-
-    public function setCacheKey(string $cacheKey): void
-    {
-        $this->cacheKey = $cacheKey;
-    }
-
     /**
-     * @return array<int, CardDTO>
+     * @return array<int, BaseDTO>
      *
-     * @throws InvalidArgumentException
      * @throws PokemonExceptions
      */
     public function findAll(): array
     {
-        $cache = $this->cacheService->getCache();
+        $cacheKey = $this->cacheService->getCacheKey(self::ALL_CARDS_CACHE_KEY);
 
-        $cacheItem = $cache
-            ->getItem($this->cacheKey)
-            ->expiresAfter(60 * 60 * 24);
+        /** @var array<int, CardDTO>|null $cachedCards */
+        $cachedCards = $this->cacheService->getCacheItem($cacheKey);
 
-        if ($cacheItem->isHit()) {
-            /** @var array<int, CardDTO> $cachedCards */
-            $cachedCards = $cacheItem->get();
-
+        if (null !== $cachedCards) {
             return $cachedCards;
-        } else {
-            /** @var array<int, Card> $cards */
-            $cards = $this->service::Card()->all();
-            
-            if (!$cards) {
-                throw PokemonExceptions::noPokemonNearby();
-            }
-
-            $collection = $this->transformer->transformCollection($cards);
-
-            $cacheItem->set($collection);
-            $cache->save($cacheItem);
-
-            return $collection;
         }
+        
+        /** @var array<int, Card> $cards */
+        $cards = $this->cardProvider->findAll();
+
+        if (!$cards) {
+            throw PokemonExceptions::noPokemonNearby();
+        }
+
+        $collection = $this->transformer->transformCollection($cards);
+        $this->cacheService->setCacheKey($cacheKey, $collection);
+
+        return $collection;
     }
 
     /**
-     * @throws InvalidArgumentException
-     * @throws ReflectionException
      * @throws PokemonExceptions
      */
     public function findById(string $id): BaseDTO
     {
-        $cache = $this->cacheService->getCache();
+        $cacheKey = $this->cacheService->getCacheKey(self::CARD_CACHE_KEY_PREFIX, $id);
 
-        $cacheItem = $cache
-            ->getItem("card-$id")
-            ->expiresAfter(60 * 60 * 24);
+        /** @var CardDTO|null $cachedCard */
+        $cachedCard = $this->cacheService->getCacheItem($cacheKey);
 
-        if ($cacheItem->isHit()) {
-            /** @var CardDTO $cachedCards */
-            $cachedCards = $cacheItem->get();
-
-            return $cachedCards;
-        } else {
-            try {
-                $card = $this->service::Card()->find($id);
-            } catch (\InvalidArgumentException) {
-                throw PokemonExceptions::pokemonNotFound($id);
-            }
-
-            /** @var Card $card */
-            $dto = $this->transformer->transform($card);
-
-            $cacheItem->set($dto);
-            $cache->save($cacheItem);
-
-            return $dto;
+        if (null !== $cachedCard) {
+            return $cachedCard;
         }
+
+        try {
+            $card = $this->cardProvider->findById($id);
+        } catch (InvalidArgumentException) {
+            throw PokemonExceptions::pokemonNotFound($id);
+        }
+
+        /** @var Card $card */
+        $dto = $this->transformer->transform($card);
+        $this->cacheService->setCacheKey($cacheKey, $dto);
+
+        return $dto;
     }
 }

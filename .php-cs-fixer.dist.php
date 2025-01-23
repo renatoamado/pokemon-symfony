@@ -6,6 +6,7 @@ $finder = (new PhpCsFixer\Finder())
 
 return (new PhpCsFixer\Config())
     ->setParallelConfig(PhpCsFixer\Runner\Parallel\ParallelConfigFactory::detect())
+    ->setLineEnding("\r\n")
     ->setRules([
         'align_multiline_comment' => true,
         'array_syntax' => [

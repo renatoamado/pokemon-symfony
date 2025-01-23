@@ -4,49 +4,45 @@ namespace Tests\Integration;
 
 use App\DataTransferObject\CardDTO;
 use App\Exceptions\PokemonExceptions;
-use App\Service\CacheService;
 use App\Service\CacheServiceInterface;
+use App\Service\CardProviderInterface;
 use App\Service\PokemonService;
-use App\Transformer\CardDTOTransformer;
+use App\Service\PokemonServiceInterface;
+use App\Transformer\TransformerInterface;
 use InvalidArgumentException;
 use Mockery;
 use PHPUnit\Framework\TestCase;
-use Pokemon\Pokemon;
-use Pokemon\Resources\Interfaces\QueriableResourceInterface;
-use Symfony\Component\Cache\Adapter\ArrayAdapter;
 
 class PokemonServiceTest extends TestCase
 {
-    private ?PokemonService $pokemonService;
+    private ?PokemonServiceInterface $pokemonService;
 
-    private ?QueriableResourceInterface $resource;
+    private ?CardProviderInterface $cardProvider;
 
-    private ?Pokemon $pokemon;
+    private ?CacheServiceInterface $cacheService;
 
-    private ?CacheServiceInterface $cache;
+    private ?TransformerInterface $transformer;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $adapter = new ArrayAdapter();
-        $this->cache = new CacheService($adapter);
+        $this->cacheService = Mockery::mock(CacheServiceInterface::class);
+        $this->transformer = Mockery::mock(TransformerInterface::class);
+        $this->cardProvider = Mockery::mock(CardProviderInterface::class);
+        $this->pokemonService = new PokemonService($this->cardProvider, $this->cacheService, $this->transformer);
+    }
 
-        $this->resource = Mockery::mock(QueriableResourceInterface::class);
-        $this->pokemon = Mockery::mock(Pokemon::class);
+    protected function tearDown(): void
+    {
+        parent::tearDown();
 
-        $this->pokemon
-            ->shouldReceive('Options')
-            ->with([
-                'verify' => true,
-                'timeout' => 20,
-                'connection_timeout' => 5,
-            ]);
-        $this->pokemon
-            ->shouldReceive('ApiKey')
-            ->with(null);
+        $this->cacheService = null;
+        $this->pokemonService = null;
+        $this->cardProvider = null;
+        $this->transformer = null;
 
-        $this->pokemonService = new PokemonService($this->pokemon, $this->cache, new CardDTOTransformer());
+        Mockery::close();
     }
 
     public function testIfCacheMissesShouldReturnArrayOfCardDTO(): void
@@ -54,13 +50,40 @@ class PokemonServiceTest extends TestCase
         $cardOne = generateCard('ab-1', 'pokemon 1');
         $cardTwo = generateCard('ab-2', 'pokemon 2');
 
-        $this->pokemon
-            ->shouldReceive('Card')
-            ->andReturn($this->resource);
+        $cachedDtoOne = new CardDTO(
+            id: $cardOne->getId(),
+            name: $cardOne->getName(),
+        );
 
-        $this->resource
-            ->shouldReceive('all')
+        $cachedDtoTwo = new CardDTO(
+            id: $cardTwo->getId(),
+            name: $cardTwo->getName(),
+        );
+
+        $cacheKey = 'all-cached-cards';
+
+        $this->cacheService
+            ->shouldReceive('getCacheKey')
+            ->with(PokemonService::ALL_CARDS_CACHE_KEY)
+            ->andReturn($cacheKey);
+        $this->cacheService
+            ->shouldReceive('getCacheItem')
+            ->with($cacheKey)
+            ->andReturn(null);
+
+        $this->cardProvider
+            ->shouldReceive('findAll')
             ->andReturn([$cardOne, $cardTwo]);
+
+        $this->transformer
+            ->shouldReceive('transformCollection')
+            ->with([$cardOne, $cardTwo])
+            ->andReturn([$cachedDtoOne, $cachedDtoTwo]);
+
+        $this->cacheService
+            ->shouldReceive('setCacheKey')
+            ->with($cacheKey, [$cachedDtoOne, $cachedDtoTwo])
+            ->once();
 
         $cards = $this->pokemonService->findAll();
 
@@ -87,32 +110,80 @@ class PokemonServiceTest extends TestCase
             name: $cardTwo->getName(),
         );
 
-        $cacheItem = $this->cache->getCache()->getItem('all-cached-cards');
-        $cacheItem->set([$cachedDtoOne, $cachedDtoTwo]);
+        $cacheKey = 'all-cached-cards';
 
-        $this->cache->getCache()->save($cacheItem);
-        $this->pokemonService->setCacheKey($cacheItem->getKey());
+        $this->cacheService
+            ->shouldReceive('getCacheKey')
+            ->with(PokemonService::ALL_CARDS_CACHE_KEY)
+            ->andReturn($cacheKey);
+        $this->cacheService
+            ->shouldReceive('getCacheItem')
+            ->with($cacheKey)
+            ->andReturn([$cachedDtoOne, $cachedDtoTwo]);
+
+        $this->cardProvider
+            ->shouldReceive('findAll')
+            ->andReturn([$cardOne, $cardTwo]);
+
+        $this->transformer
+            ->shouldReceive('transformCollection')
+            ->with([$cardOne, $cardTwo])
+            ->andReturn([$cachedDtoOne, $cachedDtoTwo]);
 
         $response = $this->pokemonService->findAll();
 
         $this->assertIsArray($response);
-        $this->assertEquals($this->pokemonService->getCacheKey(), $cacheItem->getKey());
+    }
+
+    public function testThrowExceptionIfNotFindAnyPokemon(): void
+    {
+        $this->expectException(PokemonExceptions::class);
+
+        $cacheKey = 'all-cached-cards';
+
+        $this->cacheService
+            ->shouldReceive('getCacheKey')
+            ->with(PokemonService::ALL_CARDS_CACHE_KEY)
+            ->andReturn($cacheKey);
+        $this->cacheService
+            ->shouldReceive('getCacheItem')
+            ->with($cacheKey)
+            ->andReturn(null);
+
+        $this->cardProvider
+            ->shouldReceive('findAll')
+            ->andReturn(null);
+
+        $this->pokemonService->findAll();
     }
 
     public function testFindByIdCacheHitShouldReturnCardDTO(): void
     {
         $card = generateCard('123', 'pokemon 1');
+
         $cachedDTO = new CardDTO(
             id: $card->getId(),
             name: $card->getName(),
         );
 
-        $cacheItem = $this->cache->getCache()->getItem('card-123');
-        $cacheItem->set($cachedDTO);
+        $cardID = '123';
+        $cacheKey = "card-$cardID";
 
-        $this->cache->getCache()->save($cacheItem);
+        $this->cacheService
+            ->shouldReceive('getCacheKey')
+            ->with(PokemonService::CARD_CACHE_KEY_PREFIX, $cardID)
+            ->andReturn($cacheKey);
+        $this->cacheService
+            ->shouldReceive('getCacheItem')
+            ->with($cacheKey)
+            ->andReturn($cachedDTO);
 
-        $response = $this->pokemonService->findById('123');
+        $this->cardProvider
+            ->shouldReceive('findById')
+            ->with($cardID)
+            ->andReturn($card);
+
+        $response = $this->pokemonService->findById($cardID);
         $this->assertEquals($cachedDTO, $response);
     }
 
@@ -120,87 +191,76 @@ class PokemonServiceTest extends TestCase
     {
         $card = generateCard('123', 'pokemon 1');
 
-        $this->pokemon
-            ->shouldReceive('Card')
-            ->andReturn($this->resource);
+        $cachedDTO = new CardDTO(
+            id: $card->getId(),
+            name: $card->getName(),
+            types: $card->getTypes(),
+            images: $card->getImages()?->toArray(),
+            resistances: $card->getResistances(),
+            weaknesses: $card->getWeaknesses(),
+            attacks: $card->getAttacks(),
+        );
 
-        $this->resource
-            ->shouldReceive('find')
-            ->with($card->getId())
+        $cardID = '123';
+        $cacheKey = "card-$cardID";
+
+        $this->cacheService
+            ->shouldReceive('getCacheKey')
+            ->with(PokemonService::CARD_CACHE_KEY_PREFIX, $cardID)
+            ->andReturn($cacheKey);
+        $this->cacheService
+            ->shouldReceive('getCacheItem')
+            ->with($cacheKey)
+            ->andReturn(null);
+
+        $this->cardProvider
+            ->shouldReceive('findById')
+            ->with($cardID)
             ->andReturn($card);
 
-        $response = $this->pokemonService->findById($card->getId());
+        $this->transformer
+            ->shouldReceive('transform')
+            ->with($card)
+            ->andReturn($cachedDTO);
+
+        $this->cacheService
+            ->shouldReceive('setCacheKey')
+            ->with($cacheKey, $cachedDTO)
+            ->once();
+
+        $response = $this->pokemonService->findById($cardID);
 
         $this->assertInstanceOf(CardDTO::class, $response);
         $this->assertEquals($card->getId(), $response->getId());
         $this->assertEquals($card->getName(), $response->getName());
         $this->assertEquals($card->getTypes(), $response->getTypes());
-        $this->assertEquals($card->getImages()->toArray(), $response->getImages()[0]);
-        $this->assertEquals($card->getResistances()[0]->toArray(), $response->getResistances()[0]);
-        $this->assertEquals($card->getWeaknesses()[0]->toArray(), $response->getWeaknesses()[0]);
-        $this->assertEquals($card->getAttacks()[0]->toArray(), $response->getAttacks()[0]);
-    }
-
-    public function testNullModelParsingShouldReturnNull(): void
-    {
-        $card = generateCard('ab-1', 'pokemon 1');
-        $card->setImages(null);
-
-        $this->pokemon
-            ->shouldReceive('Card')
-            ->andReturn($this->resource);
-
-        $this->resource
-            ->shouldReceive('find')
-            ->with($card->getId())
-            ->andReturn($card);
-
-        $response = $this->pokemonService->findById($card->getId());
-
-        $this->assertInstanceOf(CardDTO::class, $response);
-        $this->assertNull($response->getImages());
+        $this->assertEquals($card->getImages()->toArray(), $response->getImages());
+        $this->assertEquals($card->getResistances()[0]->toArray(), $response->getResistances()[0]->toArray());
+        $this->assertEquals($card->getWeaknesses()[0]->toArray(), $response->getWeaknesses()[0]->toArray());
+        $this->assertEquals($card->getAttacks()[0]->toArray(), $response->getAttacks()[0]->toArray());
     }
 
     public function testThrowExceptionIfNoPokemonIsFound(): void
     {
         $this->expectException(PokemonExceptions::class);
 
-        $this->pokemon
-            ->shouldReceive('Card')
-            ->andReturn($this->resource);
+        $cardID = '123';
+        $cacheKey = "card-$cardID";
 
-        $this->resource
-            ->shouldReceive('find')
-            ->with('ab-2')
-            ->andThrow(InvalidArgumentException::class);
-
-        $this->pokemonService->findById('ab-2');
-    }
-
-    public function testThrowExceptionIfNotFindAnyPokemon(): void
-    {
-        $this->expectException(PokemonExceptions::class);
-
-        $this->pokemon
-            ->shouldReceive('Card')
-            ->andReturn($this->resource);
-
-        $this->resource
-            ->shouldReceive('all')
+        $this->cacheService
+            ->shouldReceive('getCacheKey')
+            ->with(PokemonService::CARD_CACHE_KEY_PREFIX, $cardID)
+            ->andReturn($cacheKey);
+        $this->cacheService
+            ->shouldReceive('getCacheItem')
+            ->with($cacheKey)
             ->andReturn(null);
 
-        $this->pokemonService->findAll();
-    }
+        $this->cardProvider
+            ->shouldReceive('findById')
+            ->with($cardID)
+            ->andThrow(InvalidArgumentException::class);
 
-    protected function tearDown(): void
-    {
-        parent::tearDown();
-
-        $this->cache->getCache()->clear();
-        $this->pokemonService = null;
-        $this->resource = null;
-        $this->pokemon = null;
-
-        Mockery::close();
+        $this->pokemonService->findById($cardID);
     }
 }
