@@ -2,7 +2,6 @@
 
 namespace App\Controller;
 
-use App\Service\NonceGenerator;
 use App\Service\PokemonService;
 use Exception;
 use Pagerfanta\Adapter\ArrayAdapter;
@@ -14,7 +13,7 @@ use Symfony\Component\Routing\Attribute\Route;
 
 final class PokemonController extends AbstractController
 {
-    function __construct(private readonly PokemonService $service, private readonly NonceGenerator $nonceGenerator)
+    function __construct(private readonly PokemonService $service)
     {
     }
 
@@ -33,12 +32,10 @@ final class PokemonController extends AbstractController
                 'cards' => $pagerfanta->getCurrentPageResults(),
                 'pager' => $pagerfanta,
                 'error' => null,
-                'nonce' => $this->nonceGenerator->generate(),
             ]);
         } catch (Exception $exception) {
             return $this->render('pokemon/index.html.twig', [
                 'error' => $exception->getMessage(),
-                'nonce' => $this->nonceGenerator->generate(),
             ]);
         }
     }
@@ -52,12 +49,10 @@ final class PokemonController extends AbstractController
             return $this->render('pokemon/show.html.twig', [
                 'card' => $card,
                 'error' => null,
-                'nonce' => $this->nonceGenerator->generate(),
             ]);
         } catch (Exception $exception) {
             return $this->render('pokemon/show.html.twig', [
                 'error' => $exception->getMessage(),
-                'nonce' => $this->nonceGenerator->generate(),
             ]);
         }
     }

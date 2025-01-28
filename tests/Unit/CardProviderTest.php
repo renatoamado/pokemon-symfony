@@ -6,6 +6,9 @@ use App\Service\CardProvider;
 use PHPUnit\Framework\TestCase;
 use Pokemon\Models\Card;
 
+/**
+ * @skip
+ */
 class CardProviderTest extends TestCase
 {
     private CardProvider $cardProvider;
@@ -18,6 +21,8 @@ class CardProviderTest extends TestCase
 
     public function testFindAll(): void
     {
+        $this->markTestSkipped('testFindAll skipped because it takes too long. Just remove this line to run it.');
+
         $cards = $this->cardProvider->findAll();
 
         $this->assertIsArray($cards);

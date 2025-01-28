@@ -28,10 +28,6 @@ services:
     App\Service\NonceGeneratorInterface:
         class: App\Service\NonceGenerator
 
-    App\EventListener\CspListener:
-        tags:
-            - { name: kernel.event_listener, event: kernel.response, method: onKernelResponse }
-
     Pokemon\Pokemon:
         class: Pokemon\Pokemon
         calls:
