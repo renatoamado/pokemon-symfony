@@ -18,10 +18,12 @@ services:
     container_name: nginx
     image: nginx:stable-alpine
     ports:
-      - '8080:80'
+      - '80:80'  # HTTP
+      - '443:443' # HTTPS
     volumes:
       - .:/var/www/symfony
       - ./.docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - ./.docker/nginx/ssl:/etc/nginx/ssl
     networks:
       - symfony-network
     depends_on:

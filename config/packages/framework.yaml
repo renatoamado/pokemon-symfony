@@ -8,6 +8,11 @@ framework:
     #esi: true
     #fragments: true
 
+    router:
+        http_port: 80
+        https_port: 443
+        default_uri: https://localhost
+
 when@test:
     framework:
         test: true
